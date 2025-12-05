@@ -2,10 +2,12 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::str::FromStr;
 
+#[allow(dead_code)]
 pub fn parse_char_grid(input: &str) -> Vec<Vec<char>> {
     input.lines().map(|line| line.chars().collect()).collect()
 }
 
+#[allow(dead_code)]
 pub fn parse_grid_rows<T>(input: &str) -> Vec<Vec<T>>
 where
     T: FromStr,
@@ -21,6 +23,7 @@ where
         .collect()
 }
 
+#[allow(dead_code)]
 pub fn parse_grid_cols<T>(input: &str) -> Vec<Vec<T>>
 where
     T: FromStr + Clone,
@@ -44,6 +47,7 @@ where
     grid
 }
 
+#[allow(dead_code)]
 pub fn get_counter<T: Eq + std::hash::Hash + Clone>(list: &[T]) -> HashMap<T, i32> {
     let mut counter = HashMap::new();
     for item in list {
@@ -52,10 +56,12 @@ pub fn get_counter<T: Eq + std::hash::Hash + Clone>(list: &[T]) -> HashMap<T, i3
     counter
 }
 
+#[allow(dead_code)]
 pub fn indexes(n: usize, m: usize) -> impl Iterator<Item = (usize, usize)> {
     (0..n).flat_map(move |i| (0..m).map(move |j| (i, j)))
 }
 
+#[allow(dead_code)]
 pub fn get_in_range_fn(n: usize, m: usize) -> impl Fn(usize, usize) -> bool {
     move |i, j| (0..n).contains(&i) && (0..m).contains(&j)
 }
@@ -80,6 +86,7 @@ pub fn cached<Arg: Eq + std::hash::Hash + Clone, Ret: Clone>(
     }
 }
 
+#[allow(unused)]
 macro_rules! it_to_tuple {
     ($it:expr, $n:literal) => {
         seq_macro::seq!(_ in 0..$n {
@@ -90,6 +97,7 @@ macro_rules! it_to_tuple {
         })
     }
 }
+#[allow(unused)]
 pub(crate) use it_to_tuple;
 
 #[cfg(test)]
@@ -122,11 +130,7 @@ mod tests {
     #[test]
     fn test_cached() {
         fn fib(n: i32) -> i32 {
-            if n <= 1 {
-                n
-            } else {
-                fib(n - 1) + fib(n - 2)
-            }
+            if n <= 1 { n } else { fib(n - 1) + fib(n - 2) }
         }
 
         let mut cached_fib = cached(fib);
