@@ -2,13 +2,27 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::str::FromStr;
 
-#[allow(dead_code)]
 pub fn parse_char_grid(input: &str) -> Vec<Vec<char>> {
     input.lines().map(|line| line.chars().collect()).collect()
 }
 
+pub fn add_grid_border<T: Copy>(grid: &[Vec<T>], filler: T) -> Vec<Vec<T>> {
+    let m = grid[0].len();
+
+    let mut grid_with_border = vec![vec![filler; m + 2]];
+    for row in grid {
+        let mut bordered_row = vec![filler];
+        bordered_row.extend(row);
+        bordered_row.push(filler);
+        grid_with_border.push(bordered_row);
+    }
+    grid_with_border.push(vec![filler; m + 2]);
+
+    grid_with_border
+}
+
 #[allow(dead_code)]
-pub fn parse_grid_rows<T>(input: &str) -> Vec<Vec<T>>
+pub fn parse_grid_rows<T>(input: &str, splitter: &str) -> Vec<Vec<T>>
 where
     T: FromStr,
     <T as FromStr>::Err: Debug,
@@ -16,7 +30,8 @@ where
     input
         .lines()
         .map(|line| {
-            line.split_whitespace()
+            line.split(splitter)
+                .filter(|s| !s.is_empty())
                 .map(|x| x.parse().unwrap())
                 .collect()
         })
@@ -24,7 +39,7 @@ where
 }
 
 #[allow(dead_code)]
-pub fn parse_grid_cols<T>(input: &str) -> Vec<Vec<T>>
+pub fn parse_grid_cols<T>(input: &str, splitter: &str) -> Vec<Vec<T>>
 where
     T: FromStr + Clone,
     <T as FromStr>::Err: Debug,
@@ -33,7 +48,8 @@ where
     let mut first_line = true;
     for line in input.lines() {
         let elems: Vec<T> = line
-            .split_whitespace()
+            .split(splitter)
+            .filter(|s| !s.is_empty())
             .map(|x| x.parse().unwrap())
             .collect();
         if first_line {
@@ -108,14 +124,14 @@ mod tests {
     fn test_parse_grid_rows() {
         let input = "1 2 3\n4 5 6\n7 8 9";
         let expected = vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]];
-        assert_eq!(parse_grid_rows::<i32>(input), expected);
+        assert_eq!(parse_grid_rows::<i32>(input, " "), expected);
     }
 
     #[test]
     fn test_parse_grid_cols() {
         let input = "1 2 3\n4 5 6\n7 8 9";
         let expected = vec![vec![1, 4, 7], vec![2, 5, 8], vec![3, 6, 9]];
-        assert_eq!(parse_grid_cols::<i32>(input), expected);
+        assert_eq!(parse_grid_cols::<i32>(input, " "), expected);
     }
 
     #[test]
