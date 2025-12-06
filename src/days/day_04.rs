@@ -8,21 +8,17 @@ pub fn part_1(input: &str) -> String {
     let m = grid[0].len();
 
     let mut accessable_rolls = 0;
-    for i in 1..n - 1 {
-        for j in 1..m - 1 {
-            if grid[i][j] == '.' {
-                continue;
-            }
+    for (i, j) in iproduct!(1..n - 1, 1..m - 1) {
+        if grid[i][j] == '.' {
+            continue;
+        }
 
-            let surrounding_rolls = [-1i32, 0, 1]
-                .iter()
-                .cartesian_product([-1i32, 0, 1].iter())
-                .filter(|&(di, dj)| grid[(i as i32 + di) as usize][(j as i32 + dj) as usize] == '@')
-                .count();
+        let surrounding_rolls = iproduct!(i - 1..=i + 1, j - 1..=j + 1)
+            .filter(|&(i, j)| grid[i][j] == '@')
+            .count();
 
-            if surrounding_rolls < 5 {
-                accessable_rolls += 1
-            }
+        if surrounding_rolls < 5 {
+            accessable_rolls += 1
         }
     }
 
@@ -44,8 +40,8 @@ pub fn part_2(input: &str) -> String {
                 continue;
             }
 
-            let surrounding_rolls = iproduct!([-1i32, 0, 1], [-1i32, 0, 1])
-                .filter(|&(di, dj)| grid[(i as i32 + di) as usize][(j as i32 + dj) as usize] == '@')
+            let surrounding_rolls = iproduct!(i - 1..=i + 1, j - 1..=j + 1)
+                .filter(|&(i, j)| grid[i][j] == '@')
                 .count();
 
             if surrounding_rolls < 5 {
