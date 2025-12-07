@@ -22,15 +22,25 @@ pub fn add_grid_border<T: Copy>(grid: &[Vec<T>], filler: T) -> Vec<Vec<T>> {
 }
 
 #[allow(dead_code)]
-pub fn parse_grid_rows<T>(input: &str, splitter: &str) -> Vec<Vec<T>>
+pub fn parse_grid_rows<T>(input: &str) -> Vec<Vec<T>>
 where
-    T: FromStr,
+    T: FromStr + Clone,
     <T as FromStr>::Err: Debug,
+{
+    parse_grid_rows_with_splitter(input, |s| s.split("").filter(|s| !s.is_empty()))
+}
+
+pub fn parse_grid_rows_with_splitter<'a, T, F, I>(input: &'a str, splitter: F) -> Vec<Vec<T>>
+where
+    T: FromStr + Clone,
+    <T as FromStr>::Err: Debug,
+    F: Fn(&'a str) -> I,
+    I: Iterator<Item = &'a str>,
 {
     input
         .lines()
         .map(|line| {
-            line.split(splitter)
+            splitter(line)
                 .filter(|s| !s.is_empty())
                 .map(|x| x.parse().unwrap())
                 .collect()
@@ -39,19 +49,25 @@ where
 }
 
 #[allow(dead_code)]
-pub fn parse_grid_cols<T>(input: &str, splitter: &str) -> Vec<Vec<T>>
+pub fn parse_grid_cols<T>(input: &str) -> Vec<Vec<T>>
 where
     T: FromStr + Clone,
     <T as FromStr>::Err: Debug,
 {
+    parse_grid_cols_with_splitter(input, |s| s.split("").filter(|s| !s.is_empty()))
+}
+
+pub fn parse_grid_cols_with_splitter<'a, T, F, I>(input: &'a str, splitter: F) -> Vec<Vec<T>>
+where
+    T: FromStr + Clone,
+    <T as FromStr>::Err: Debug,
+    F: Fn(&'a str) -> I,
+    I: Iterator<Item = &'a str>,
+{
     let mut grid = vec![];
     let mut first_line = true;
     for line in input.lines() {
-        let elems: Vec<T> = line
-            .split(splitter)
-            .filter(|s| !s.is_empty())
-            .map(|x| x.parse().unwrap())
-            .collect();
+        let elems: Vec<T> = splitter(line).map(|x| x.parse().unwrap()).collect();
         if first_line {
             grid = vec![vec![]; elems.len()];
             first_line = false;
@@ -61,15 +77,6 @@ where
         }
     }
     grid
-}
-
-#[allow(dead_code)]
-pub fn get_counter<T: Eq + std::hash::Hash + Clone>(list: &[T]) -> HashMap<T, i32> {
-    let mut counter = HashMap::new();
-    for item in list {
-        *counter.entry(item.clone()).or_insert(0) += 1;
-    }
-    counter
 }
 
 #[allow(dead_code)]
@@ -124,23 +131,16 @@ mod tests {
     fn test_parse_grid_rows() {
         let input = "1 2 3\n4 5 6\n7 8 9";
         let expected = vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]];
-        assert_eq!(parse_grid_rows::<i32>(input, " "), expected);
+        let result: Vec<Vec<i64>> = parse_grid_rows_with_splitter(input, |s| s.split_whitespace());
+        assert_eq!(expected, result);
     }
 
     #[test]
     fn test_parse_grid_cols() {
         let input = "1 2 3\n4 5 6\n7 8 9";
-        let expected = vec![vec![1, 4, 7], vec![2, 5, 8], vec![3, 6, 9]];
-        assert_eq!(parse_grid_cols::<i32>(input, " "), expected);
-    }
-
-    #[test]
-    fn test_get_counter() {
-        let input = vec![1, 2, 3, 1, 2, 3, 1, 2, 3];
-        let expected = vec![(1, 3), (2, 3), (3, 3)]
-            .into_iter()
-            .collect::<HashMap<_, _>>();
-        assert_eq!(get_counter(&input), expected);
+        let expected = vec![vec![1i64, 4, 7], vec![2, 5, 8], vec![3, 6, 9]];
+        let result: Vec<Vec<i64>> = parse_grid_cols_with_splitter(input, |s| s.split_whitespace());
+        assert_eq!(expected, result);
     }
 
     #[test]

@@ -1,7 +1,7 @@
 use crate::util::parse_grid_rows;
 
 pub fn part_1(input: &str) -> String {
-    let grid = parse_grid_rows::<i32>(input, "");
+    let grid = parse_grid_rows::<i32>(input);
     let mut sum = 0;
 
     for bank in &grid {
@@ -22,7 +22,7 @@ pub fn find_first_largest<T: Ord + Copy>(bank: &[T], start: usize, end: usize) -
 }
 
 pub fn part_2(input: &str) -> String {
-    let grid = parse_grid_rows::<i64>(input, "");
+    let grid = parse_grid_rows::<i64>(input);
     let mut sum = 0;
 
     for bank in &grid {
