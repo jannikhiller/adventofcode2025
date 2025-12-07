@@ -27,7 +27,7 @@ pub fn part_1(input: &str) -> String {
 
 #[allow(unused_variables)]
 pub fn part_2(input: &str) -> String {
-    let mut grid = add_grid_border(&parse_char_grid(input), '.');
+    let mut grid = parse_char_grid(input).add_border('.');
     let i = grid[1].iter().position(|&c| c == 'S').unwrap();
     grid[1][i] = '|';
 

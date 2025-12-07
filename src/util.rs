@@ -1,9 +1,30 @@
 use std::collections::HashMap;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use std::str::FromStr;
 
-pub fn parse_char_grid(input: &str) -> Vec<Vec<char>> {
-    input.lines().map(|line| line.chars().collect()).collect()
+pub trait Grid<T> {
+    #[allow(dead_code)]
+    fn print(&self)
+    where
+        T: Display;
+    fn add_border(&self, filler: T) -> Vec<Vec<T>>
+    where
+        T: Copy;
+}
+
+impl<T> Grid<T> for [Vec<T>] {
+    fn print(&self)
+    where
+        T: Display,
+    {
+        print_grid(self);
+    }
+    fn add_border(&self, filler: T) -> Vec<Vec<T>>
+    where
+        T: Copy,
+    {
+        add_grid_border(self, filler)
+    }
 }
 
 pub fn add_grid_border<T: Copy>(grid: &[Vec<T>], filler: T) -> Vec<Vec<T>> {
@@ -19,6 +40,20 @@ pub fn add_grid_border<T: Copy>(grid: &[Vec<T>], filler: T) -> Vec<Vec<T>> {
     grid_with_border.push(vec![filler; m + 2]);
 
     grid_with_border
+}
+
+#[allow(dead_code)]
+pub fn print_grid<T: Display>(grid: &[Vec<T>]) {
+    for r in grid {
+        for c in r {
+            print!("{c}");
+        }
+        println!();
+    }
+}
+
+pub fn parse_char_grid(input: &str) -> Vec<Vec<char>> {
+    input.lines().map(|line| line.chars().collect()).collect()
 }
 
 #[allow(dead_code)]
