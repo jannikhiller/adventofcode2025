@@ -26,6 +26,62 @@ impl<T> Grid<T> for [Vec<T>] {
     }
 }
 
+pub trait ParseCharGrid<T> {
+    fn parse_char_grid(&self) -> Vec<Vec<T>>;
+}
+
+impl ParseCharGrid<char> for str {
+    fn parse_char_grid(&self) -> Vec<Vec<char>> {
+        parse_char_grid(self)
+    }
+}
+
+#[allow(dead_code)]
+pub trait ParseGrid<T>
+where
+    T: FromStr + Clone,
+    <T as FromStr>::Err: Debug,
+{
+    fn parse_grid_rows(&self) -> Vec<Vec<T>>;
+    fn parse_grid_rows_with_splitter<'a, F, I>(&'a self, splitter: F) -> Vec<Vec<T>>
+    where
+        F: Fn(&'a str) -> I,
+        I: Iterator<Item = &'a str>;
+
+    fn parse_grid_cols(&self) -> Vec<Vec<T>>;
+    fn parse_grid_cols_with_splitter<'a, F, I>(&'a self, splitter: F) -> Vec<Vec<T>>
+    where
+        F: Fn(&'a str) -> I,
+        I: Iterator<Item = &'a str>;
+}
+
+impl<T> ParseGrid<T> for str
+where
+    T: FromStr + Clone,
+    <T as FromStr>::Err: Debug,
+{
+    fn parse_grid_rows(&self) -> Vec<Vec<T>> {
+        parse_grid_rows(self)
+    }
+    fn parse_grid_rows_with_splitter<'a, F, I>(&'a self, splitter: F) -> Vec<Vec<T>>
+    where
+        F: Fn(&'a str) -> I,
+        I: Iterator<Item = &'a str>,
+    {
+        parse_grid_rows_with_splitter(self, splitter)
+    }
+    fn parse_grid_cols(&self) -> Vec<Vec<T>> {
+        parse_grid_cols(self)
+    }
+    fn parse_grid_cols_with_splitter<'a, F, I>(&'a self, splitter: F) -> Vec<Vec<T>>
+    where
+        F: Fn(&'a str) -> I,
+        I: Iterator<Item = &'a str>,
+    {
+        parse_grid_cols_with_splitter(self, splitter)
+    }
+}
+
 pub fn add_grid_border<T: Copy>(grid: &[Vec<T>], filler: T) -> Vec<Vec<T>> {
     let m = grid[0].len();
 
