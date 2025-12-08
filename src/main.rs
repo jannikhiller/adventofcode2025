@@ -4,16 +4,18 @@ use seq_macro::seq;
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
+use std::time::Instant;
 
 mod days;
 mod util;
 
 static AOC_YEAR: i32 = 2025;
+static NUM_DAYS: u32 = 12;
 
 #[derive(Parser)]
 struct Arguments {
     #[arg(short, long, default_value = get_latest_day().to_string(), group = "'day", num_args = 1..)]
-    day: Vec<i32>,
+    day: Vec<u32>,
     #[arg(short, long, group = "'day")]
     all: bool,
     #[arg(short, long, group = "input")]
@@ -22,25 +24,25 @@ struct Arguments {
     from_stdin: bool,
 }
 
-fn get_latest_day() -> i32 {
+fn get_latest_day() -> u32 {
     let now = chrono::Utc::now();
     let start = chrono::Utc
         .with_ymd_and_hms(AOC_YEAR, 12, 1, 5, 0, 0)
         .unwrap();
     let end = chrono::Utc
-        .with_ymd_and_hms(AOC_YEAR, 12, 25, 5, 0, 0)
+        .with_ymd_and_hms(AOC_YEAR, 12, NUM_DAYS, 5, 0, 0)
         .unwrap();
 
     if now < start {
         0
     } else if now > end {
-        25
+        NUM_DAYS
     } else {
-        ((now - start).num_days() + 1) as i32
+        ((now - start).num_days() + 1) as u32
     }
 }
 
-pub fn download_input(day: i32) {
+pub fn download_input(day: u32) {
     let url = format!("https://adventofcode.com/{}/day/{}/input", AOC_YEAR, day);
     let client = reqwest::blocking::Client::new();
     let session = dotenv::var("AOC_SESSION").unwrap();
@@ -57,8 +59,8 @@ pub fn download_input(day: i32) {
         .expect("Failed to write to file");
 }
 
-fn get_solver(day: i32, part: i32) -> fn(&str) -> String {
-    seq!(N in 01..=25 {
+fn get_solver(day: u32, part: u32) -> fn(&str) -> String {
+    seq!(N in 01..=12 {
         match day {
             #(
                 N => match part {
@@ -83,10 +85,10 @@ fn main() {
         println!("downloading input for day {}...", day);
         download_input(day);
     }
-    let mut days = if !args.all {
-        args.day
-    } else {
+    let mut days = if args.all {
         (1..=get_latest_day()).collect()
+    } else {
+        args.day
     };
     days.sort();
 
@@ -116,8 +118,10 @@ fn main() {
         // Run the solver for the given day and part.
         println!("running day {}...", day);
         for part in [1, 2] {
+            let start = Instant::now();
             let answer = get_solver(day, part)(&input);
-            println!("  {} (part {})", answer, part);
+            let elapsed = Instant::now() - start;
+            println!("  {}  (part {}, {:.2?})", answer, part, elapsed);
         }
     }
 }
