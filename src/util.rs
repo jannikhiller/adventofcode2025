@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 
@@ -114,50 +113,6 @@ where
     grid
 }
 
-#[allow(dead_code)]
-pub fn indexes(n: usize, m: usize) -> impl Iterator<Item = (usize, usize)> {
-    (0..n).flat_map(move |i| (0..m).map(move |j| (i, j)))
-}
-
-#[allow(dead_code)]
-pub fn get_in_range_fn(n: usize, m: usize) -> impl Fn(usize, usize) -> bool {
-    move |i, j| (0..n).contains(&i) && (0..m).contains(&j)
-}
-
-#[allow(dead_code)]
-pub fn cached<Arg: Eq + std::hash::Hash + Clone, Ret: Clone>(
-    mut f: impl FnMut(Arg) -> Ret,
-) -> impl FnMut(Arg) -> Ret {
-    let mut cache: HashMap<Arg, Ret> = HashMap::new();
-    // we have return an owned value as closures can not return refereneces to captured
-    // variables
-    move |arg| {
-        if let Some(ret) = cache.get(&arg) {
-            ret.clone()
-        } else {
-            // if Arg is a reference .clone() returnes a reference as in that case no
-            // automatic deref on method call is done
-            let ret = f(arg.clone());
-            cache.insert(arg, ret.clone());
-            ret
-        }
-    }
-}
-
-#[allow(unused)]
-macro_rules! it_to_tuple {
-    ($it:expr, $n:literal) => {
-        seq_macro::seq!(_ in 0..$n {
-            {
-                let mut it = $it.into_iter();
-                (#(it.next().unwrap(),)*)
-            }
-        })
-    }
-}
-#[allow(unused)]
-pub(crate) use it_to_tuple;
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -176,48 +131,5 @@ mod tests {
         let expected = vec![vec![1i64, 4, 7], vec![2, 5, 8], vec![3, 6, 9]];
         let result: Vec<Vec<i64>> = parse_grid_cols_with_splitter(input, |s| s.split_whitespace());
         assert_eq!(expected, result);
-    }
-
-    #[test]
-    fn test_cached() {
-        fn fib(n: i32) -> i32 {
-            if n <= 1 { n } else { fib(n - 1) + fib(n - 2) }
-        }
-
-        let mut cached_fib = cached(fib);
-        assert_eq!(cached_fib(10), 55);
-        assert_eq!(cached_fib(40), 102334155);
-
-        let mut called_once = false;
-        let f = move |_: i32| -> bool {
-            if called_once {
-                return false;
-            }
-            called_once = true;
-            return true;
-        };
-
-        let mut cached_f = cached(f);
-        assert!(cached_f(0));
-        assert!(cached_f(0));
-        assert!(!cached_f(1));
-    }
-
-    #[test]
-    fn test_vec_to_tuple() {
-        let input = vec![1, 2, 3, 4, 5, 6];
-        let (a, b, c) = it_to_tuple!(input, 3);
-        assert_eq!(a, 1);
-        assert_eq!(b, 2);
-        assert_eq!(c, 3);
-
-        let input = vec![1, 2, 3, 4, 5, 6];
-        let (a, b, c, d, e, f) = it_to_tuple!(input, 6);
-        assert_eq!(a, 1);
-        assert_eq!(b, 2);
-        assert_eq!(c, 3);
-        assert_eq!(d, 4);
-        assert_eq!(e, 5);
-        assert_eq!(f, 6);
     }
 }
