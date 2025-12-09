@@ -1,5 +1,3 @@
-use std::collections::BinaryHeap;
-
 use itertools::*;
 
 type I = u64;
@@ -37,17 +35,16 @@ pub fn part_1(input: &str) -> String {
 
     let n = points.len();
 
-    let mut closest_points = BinaryHeap::new();
-    for ((i1, p1), (i2, p2)) in points.iter().enumerate().tuple_combinations() {
-        closest_points.push((dist(p1, p2), i1, i2));
-        if closest_points.len() > NUM_CONNECTIONS {
-            closest_points.pop();
-        }
-    }
+    let closest_points = points
+        .iter()
+        .enumerate()
+        .tuple_combinations()
+        .k_smallest_relaxed_by_key(NUM_CONNECTIONS, |((_, p1), (_, p2))| dist(p1, p2))
+        .map(|((i1, _), (i2, _))| (i1, i2));
 
     let mut graph = vec![vec![]; n];
 
-    for (_, i1, i2) in closest_points {
+    for (i1, i2) in closest_points {
         graph[i1].push(i2);
         graph[i2].push(i1);
     }
