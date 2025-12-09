@@ -4,9 +4,7 @@ type I = u64;
 type Point = [I; 3];
 
 fn dist(a: &Point, b: &Point) -> I {
-    izip!(a.iter(), b.iter())
-        .map(|(&a, &b)| a.abs_diff(b).pow(2))
-        .sum::<I>()
+    izip!(a, b).map(|(&a, &b)| a.abs_diff(b).pow(2)).sum::<I>()
 }
 
 fn dfs(v: usize, graph: &[Vec<usize>], seen: &mut [bool]) -> usize {
@@ -51,6 +49,14 @@ impl UnionFind {
         self.parent[w] = v;
         self.size[v] += self.size[w];
         true
+    }
+
+    fn num_subsets(&self) -> usize {
+        self.parent
+            .iter()
+            .enumerate()
+            .filter(|&(v, &p)| v == p)
+            .count()
     }
 }
 
@@ -101,12 +107,10 @@ pub fn part_2(input: &str) -> String {
     let dist = |v: usize, w: usize| dist(&points[v], &points[w]);
 
     let mut components = UnionFind::new(n);
-
-    let mut changed = true;
     let mut mst_edges = vec![];
 
-    while changed {
-        changed = false;
+    // for my input only doing one iteration of this loop would be enough
+    loop {
         let mut cheapest_edge = vec![None; n];
         for (v, w) in (0..n).tuple_combinations() {
             let v_root = components.find(v);
@@ -132,11 +136,14 @@ pub fn part_2(input: &str) -> String {
 
         for (v, opt) in cheapest_edge.into_iter().enumerate() {
             if let Some((w, dist_vw)) = opt {
-                let changed = components.union(v, w);
-                if changed {
+                if components.union(v, w) {
                     mst_edges.push((v, w, dist_vw))
                 }
             }
+        }
+
+        if components.num_subsets() == 1 {
+            break;
         }
     }
 
