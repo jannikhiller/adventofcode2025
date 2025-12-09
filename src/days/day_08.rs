@@ -1,30 +1,14 @@
-use std::{
-    cmp::{Ord, Ordering},
-    collections::BinaryHeap,
-};
+use std::collections::BinaryHeap;
 
 use crate::util::*;
 use itertools::*;
 
 type I = u64;
-type F = f32;
 
-#[derive(PartialEq, PartialOrd, Clone)]
-struct FWrapper(F);
-
-impl Eq for FWrapper {}
-
-impl Ord for FWrapper {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.total_cmp(&other.0)
-    }
-}
-
-fn dist(a: &[I], b: &[I]) -> F {
+fn dist(a: &[I], b: &[I]) -> I {
     izip!(a.iter(), b.iter())
-        .map(|(&a, &b)| a.abs_diff(b).pow(2) as F)
-        .sum::<F>()
-        .sqrt()
+        .map(|(&a, &b)| a.abs_diff(b).pow(2))
+        .sum::<I>()
 }
 
 fn dfs(v: usize, graph: &[Vec<usize>], seen: &mut [bool]) -> usize {
@@ -43,7 +27,7 @@ pub fn part_1(input: &str) -> String {
 
     let mut closest_points = BinaryHeap::new();
     for ((i1, p1), (i2, p2)) in points.iter().enumerate().tuple_combinations() {
-        closest_points.push((FWrapper(dist(p1, p2)), i1, i2));
+        closest_points.push((dist(p1, p2), i1, i2));
         if closest_points.len() > NUM_CONNECTIONS {
             closest_points.pop();
         }
@@ -124,7 +108,7 @@ pub fn part_2(input: &str) -> String {
 
     mst_edges
         .into_iter()
-        .max_by_key(|t| FWrapper(t.2))
+        .max_by_key(|t| t.2)
         .map(|(v, w, _)| points[v][0] * points[w][0])
         .unwrap()
         .to_string()
