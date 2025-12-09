@@ -17,6 +17,43 @@ fn dfs(v: usize, graph: &[Vec<usize>], seen: &mut [bool]) -> usize {
     1 + graph[v].iter().map(|&v| dfs(v, graph, seen)).sum::<usize>()
 }
 
+#[derive(Debug)]
+struct UnionFind {
+    parent: Vec<usize>,
+    size: Vec<usize>,
+}
+
+impl UnionFind {
+    fn new(n: usize) -> Self {
+        UnionFind {
+            parent: (0..n).collect(),
+            size: vec![1; n],
+        }
+    }
+
+    fn find(&mut self, mut v: usize) -> usize {
+        while self.parent[v] != v {
+            self.parent[v] = self.parent[self.parent[v]];
+            v = self.parent[v];
+        }
+        v
+    }
+
+    fn union(&mut self, mut v: usize, mut w: usize) -> bool {
+        v = self.find(v);
+        w = self.find(w);
+        if v == w {
+            return false;
+        }
+        if self.size[v] < self.size[w] {
+            (v, w) = (w, v);
+        }
+        self.parent[w] = v;
+        self.size[v] += self.size[w];
+        true
+    }
+}
+
 fn parse_input(input: &str) -> Vec<Point> {
     input
         .lines()
@@ -58,20 +95,12 @@ pub fn part_1(input: &str) -> String {
         .to_string()
 }
 
-fn find(mut v: usize, parent: &mut [usize]) -> usize {
-    while parent[v] != v {
-        parent[v] = parent[parent[v]];
-        v = parent[v];
-    }
-    v
-}
-
 pub fn part_2(input: &str) -> String {
     let points = parse_input(input);
     let n = points.len();
     let dist = |v: usize, w: usize| dist(&points[v], &points[w]);
 
-    let mut parent: Vec<usize> = (0..n).collect();
+    let mut components = UnionFind::new(n);
 
     let mut changed = true;
     let mut mst_edges = vec![];
@@ -80,8 +109,8 @@ pub fn part_2(input: &str) -> String {
         changed = false;
         let mut cheapest_edge = vec![None; n];
         for (v, w) in (0..n).tuple_combinations() {
-            let v_root = find(v, &mut parent);
-            let w_root = find(w, &mut parent);
+            let v_root = components.find(v);
+            let w_root = components.find(w);
             if v_root == w_root {
                 continue;
             }
@@ -103,14 +132,10 @@ pub fn part_2(input: &str) -> String {
 
         for (v, opt) in cheapest_edge.into_iter().enumerate() {
             if let Some((w, dist_vw)) = opt {
-                changed = true;
-                let v_root = find(v, &mut parent);
-                let w_root = find(w, &mut parent);
-                if v_root == w_root {
-                    continue;
+                let changed = components.union(v, w);
+                if changed {
+                    mst_edges.push((v, w, dist_vw))
                 }
-                parent[v_root] = w_root;
-                mst_edges.push((v, w, dist_vw))
             }
         }
     }
