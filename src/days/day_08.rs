@@ -1,11 +1,11 @@
 use std::collections::BinaryHeap;
 
-use crate::util::*;
 use itertools::*;
 
 type I = u64;
+type Point = [I; 3];
 
-fn dist(a: &[I], b: &[I]) -> I {
+fn dist(a: &Point, b: &Point) -> I {
     izip!(a.iter(), b.iter())
         .map(|(&a, &b)| a.abs_diff(b).pow(2))
         .sum::<I>()
@@ -19,10 +19,22 @@ fn dfs(v: usize, graph: &[Vec<usize>], seen: &mut [bool]) -> usize {
     1 + graph[v].iter().map(|&v| dfs(v, graph, seen)).sum::<usize>()
 }
 
+fn parse_input(input: &str) -> Vec<Point> {
+    input
+        .lines()
+        .map(|l| {
+            l.split(",")
+                .map(|c| c.parse().unwrap())
+                .collect_array()
+                .unwrap()
+        })
+        .collect()
+}
+
 pub fn part_1(input: &str) -> String {
     const NUM_CONNECTIONS: usize = 1000;
+    let points = parse_input(input);
 
-    let points: Vec<Vec<I>> = input.parse_grid_rows_with_splitter(|l| l.split(","));
     let n = points.len();
 
     let mut closest_points = BinaryHeap::new();
@@ -58,7 +70,7 @@ fn find(mut v: usize, parent: &mut [usize]) -> usize {
 }
 
 pub fn part_2(input: &str) -> String {
-    let points: Vec<Vec<I>> = input.parse_grid_rows_with_splitter(|l| l.split(","));
+    let points = parse_input(input);
     let n = points.len();
     let dist = |v: usize, w: usize| dist(&points[v], &points[w]);
 
