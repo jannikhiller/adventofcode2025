@@ -15,51 +15,6 @@ fn dfs(v: usize, graph: &[Vec<usize>], seen: &mut [bool]) -> usize {
     1 + graph[v].iter().map(|&v| dfs(v, graph, seen)).sum::<usize>()
 }
 
-#[derive(Debug)]
-struct UnionFind {
-    parent: Vec<usize>,
-    size: Vec<usize>,
-}
-
-impl UnionFind {
-    fn new(n: usize) -> Self {
-        UnionFind {
-            parent: (0..n).collect(),
-            size: vec![1; n],
-        }
-    }
-
-    fn find(&mut self, mut v: usize) -> usize {
-        while self.parent[v] != v {
-            self.parent[v] = self.parent[self.parent[v]];
-            v = self.parent[v];
-        }
-        v
-    }
-
-    fn union(&mut self, mut v: usize, mut w: usize) -> bool {
-        v = self.find(v);
-        w = self.find(w);
-        if v == w {
-            return false;
-        }
-        if self.size[v] < self.size[w] {
-            (v, w) = (w, v);
-        }
-        self.parent[w] = v;
-        self.size[v] += self.size[w];
-        true
-    }
-
-    fn num_subsets(&self) -> usize {
-        self.parent
-            .iter()
-            .enumerate()
-            .filter(|&(v, &p)| v == p)
-            .count()
-    }
-}
-
 fn parse_input(input: &str) -> Vec<Point> {
     input
         .lines()
@@ -104,53 +59,35 @@ pub fn part_1(input: &str) -> String {
 pub fn part_2(input: &str) -> String {
     let points = parse_input(input);
     let n = points.len();
-    let dist = |v: usize, w: usize| dist(&points[v], &points[w]);
 
-    let mut components = UnionFind::new(n);
-    let mut mst_edges = vec![];
+    let mut min_edge = vec![I::MAX; n];
+    min_edge[0] = 0;
 
-    // for my input only doing one iteration of this loop would be enough
+    let mut seen: Vec<bool> = vec![false; n];
+    let mut parent: Vec<usize> = (0..n).collect();
+    let mut largest_mst_edge = (0, 0, 0);
+
     loop {
-        let mut cheapest_edge = vec![None; n];
-        for (v, w) in (0..n).tuple_combinations() {
-            let v_root = components.find(v);
-            let w_root = components.find(w);
-            if v_root == w_root {
-                continue;
-            }
+        let candidates = min_edge.iter().enumerate().filter(|&(i, _)| !seen[i]);
 
-            let dist_vw = dist(v, w);
-
-            cheapest_edge[v_root] = match cheapest_edge[v_root] {
-                Some((_, dist_vx)) if dist_vw < dist_vx => Some((w, dist_vw)),
-                Some(t) => Some(t),
-                None => Some((w, dist_vw)),
-            };
-
-            cheapest_edge[w_root] = match cheapest_edge[w_root] {
-                Some((_, dist_wx)) if dist_vw < dist_wx => Some((v, dist_vw)),
-                Some(t) => Some(t),
-                None => Some((v, dist_vw)),
-            }
-        }
-
-        for (v, opt) in cheapest_edge.into_iter().enumerate() {
-            if let Some((w, dist_vw)) = opt {
-                if components.union(v, w) {
-                    mst_edges.push((v, w, dist_vw))
-                }
-            }
-        }
-
-        if components.num_subsets() == 1 {
+        let Some((v, &d)) = candidates.min_by_key(|&(_, d)| d) else {
             break;
+        };
+        seen[v] = true;
+
+        if d > largest_mst_edge.2 {
+            largest_mst_edge = (parent[v], v, d)
+        }
+
+        for w in 0..n {
+            let d_vw = dist(&points[v], &points[w]);
+            if d_vw < min_edge[w] {
+                min_edge[w] = d_vw;
+                parent[w] = v;
+            }
         }
     }
 
-    mst_edges
-        .into_iter()
-        .max_by_key(|t| t.2)
-        .map(|(v, w, _)| points[v][0] * points[w][0])
-        .unwrap()
-        .to_string()
+    let (v, w, _) = largest_mst_edge;
+    (points[v][0] * points[w][0]).to_string()
 }
