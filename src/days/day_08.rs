@@ -79,8 +79,8 @@ pub fn part_2(input: &str) -> String {
             largest_mst_edge = (parent[v], v, d)
         }
 
-        for w in 0..n {
-            let d_vw = dist(&points[v], &points[w]);
+        for (w, p_w) in points.iter().enumerate() {
+            let d_vw = dist(&points[v], p_w);
             if d_vw < min_edge[w] {
                 min_edge[w] = d_vw;
                 parent[w] = v;
