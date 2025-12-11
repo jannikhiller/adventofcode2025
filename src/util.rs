@@ -1,6 +1,8 @@
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 
+use itertools::Itertools;
+
 pub trait Grid<T> {
     #[allow(dead_code)]
     fn print(&self)
@@ -26,59 +28,51 @@ impl<T> Grid<T> for [Vec<T>] {
     }
 }
 
-pub trait ParseCharGrid<T> {
-    fn parse_char_grid(&self) -> Vec<Vec<T>>;
-}
+pub trait Parseable = FromStr + Clone where <Self as FromStr>::Err: Debug;
+pub trait SplitFn<'a, I: Iterator<Item = &'a str>> = Fn(&'a str) -> I;
 
-impl ParseCharGrid<char> for str {
-    fn parse_char_grid(&self) -> Vec<Vec<char>> {
-        parse_char_grid(self)
-    }
+#[allow(dead_code)]
+pub trait ParseStr {
+    fn parse_char_grid(&self) -> Vec<Vec<char>>;
+    fn parse_grid_rows<T: Parseable>(&self) -> Vec<Vec<T>>;
+    fn parse_grid_rows_with_splitter<'a, T: Parseable, F: SplitFn<'a, I>, I>(
+        &'a self,
+        splitter: F,
+    ) -> Vec<Vec<T>>;
+
+    fn parse_grid_cols<T: Parseable>(&self) -> Vec<Vec<T>>;
+    fn parse_grid_cols_with_splitter<'a, T: Parseable, F: SplitFn<'a, I>, I>(
+        &'a self,
+        splitter: F,
+    ) -> Vec<Vec<T>>;
+    fn parse_points<T: Parseable, const N: usize>(&self) -> Vec<[T; N]>;
 }
 
 #[allow(dead_code)]
-pub trait ParseGrid<T>
-where
-    T: FromStr + Clone,
-    <T as FromStr>::Err: Debug,
-{
-    fn parse_grid_rows(&self) -> Vec<Vec<T>>;
-    fn parse_grid_rows_with_splitter<'a, F, I>(&'a self, splitter: F) -> Vec<Vec<T>>
-    where
-        F: Fn(&'a str) -> I,
-        I: Iterator<Item = &'a str>;
-
-    fn parse_grid_cols(&self) -> Vec<Vec<T>>;
-    fn parse_grid_cols_with_splitter<'a, F, I>(&'a self, splitter: F) -> Vec<Vec<T>>
-    where
-        F: Fn(&'a str) -> I,
-        I: Iterator<Item = &'a str>;
-}
-
-impl<T> ParseGrid<T> for str
-where
-    T: FromStr + Clone,
-    <T as FromStr>::Err: Debug,
-{
-    fn parse_grid_rows(&self) -> Vec<Vec<T>> {
+impl ParseStr for str {
+    fn parse_char_grid(&self) -> Vec<Vec<char>> {
+        parse_char_grid(self)
+    }
+    fn parse_grid_rows<T: Parseable>(&self) -> Vec<Vec<T>> {
         parse_grid_rows(self)
     }
-    fn parse_grid_rows_with_splitter<'a, F, I>(&'a self, splitter: F) -> Vec<Vec<T>>
-    where
-        F: Fn(&'a str) -> I,
-        I: Iterator<Item = &'a str>,
-    {
+    fn parse_grid_rows_with_splitter<'a, T: Parseable, F: SplitFn<'a, I>, I>(
+        &'a self,
+        splitter: F,
+    ) -> Vec<Vec<T>> {
         parse_grid_rows_with_splitter(self, splitter)
     }
-    fn parse_grid_cols(&self) -> Vec<Vec<T>> {
+    fn parse_grid_cols<T: Parseable>(&self) -> Vec<Vec<T>> {
         parse_grid_cols(self)
     }
-    fn parse_grid_cols_with_splitter<'a, F, I>(&'a self, splitter: F) -> Vec<Vec<T>>
-    where
-        F: Fn(&'a str) -> I,
-        I: Iterator<Item = &'a str>,
-    {
+    fn parse_grid_cols_with_splitter<'a, T: Parseable, F: SplitFn<'a, I>, I>(
+        &'a self,
+        splitter: F,
+    ) -> Vec<Vec<T>> {
         parse_grid_cols_with_splitter(self, splitter)
+    }
+    fn parse_points<T: Parseable, const N: usize>(&self) -> Vec<[T; N]> {
+        parse_points(self)
     }
 }
 
@@ -111,6 +105,18 @@ pub fn parse_char_grid(input: &str) -> Vec<Vec<char>> {
     input.lines().map(|line| line.chars().collect()).collect()
 }
 
+pub fn parse_points<const N: usize, T: Parseable>(input: &str) -> Vec<[T; N]> {
+    input
+        .lines()
+        .map(|l| {
+            l.split(",")
+                .map(|x| x.parse().unwrap())
+                .collect_array()
+                .unwrap()
+        })
+        .collect()
+}
+
 #[allow(dead_code)]
 pub fn parse_grid_rows<T>(input: &str) -> Vec<Vec<T>>
 where
@@ -120,13 +126,10 @@ where
     parse_grid_rows_with_splitter(input, |s| s.split("").filter(|s| !s.is_empty()))
 }
 
-pub fn parse_grid_rows_with_splitter<'a, T, F, I>(input: &'a str, splitter: F) -> Vec<Vec<T>>
-where
-    T: FromStr + Clone,
-    <T as FromStr>::Err: Debug,
-    F: Fn(&'a str) -> I,
-    I: Iterator<Item = &'a str>,
-{
+pub fn parse_grid_rows_with_splitter<'a, T: Parseable, F: SplitFn<'a, I>, I>(
+    input: &'a str,
+    splitter: F,
+) -> Vec<Vec<T>> {
     input
         .lines()
         .map(|line| {
@@ -139,21 +142,14 @@ where
 }
 
 #[allow(dead_code)]
-pub fn parse_grid_cols<T>(input: &str) -> Vec<Vec<T>>
-where
-    T: FromStr + Clone,
-    <T as FromStr>::Err: Debug,
-{
+pub fn parse_grid_cols<T: Parseable>(input: &str) -> Vec<Vec<T>> {
     parse_grid_cols_with_splitter(input, |s| s.split("").filter(|s| !s.is_empty()))
 }
 
-pub fn parse_grid_cols_with_splitter<'a, T, F, I>(input: &'a str, splitter: F) -> Vec<Vec<T>>
-where
-    T: FromStr + Clone,
-    <T as FromStr>::Err: Debug,
-    F: Fn(&'a str) -> I,
-    I: Iterator<Item = &'a str>,
-{
+pub fn parse_grid_cols_with_splitter<'a, T: Parseable, F: SplitFn<'a, I>, I>(
+    input: &'a str,
+    splitter: F,
+) -> Vec<Vec<T>> {
     let mut grid = vec![];
     let mut first_line = true;
     for line in input.lines() {

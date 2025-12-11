@@ -1,3 +1,5 @@
+#![feature(trait_alias)]
+
 use chrono::TimeZone;
 use clap::Parser;
 use seq_macro::seq;
