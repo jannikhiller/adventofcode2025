@@ -7,7 +7,7 @@ edition = "2024"
 chrono = "0.4.42"
 clap = { version = "4.5.53", features = ["derive", "string"] }
 dotenv = "0.15.0"
+good_lp = { version = "1.14.2", features = ["microlp"], default-features = false }
 itertools = "0.14.0"
-regex = "1.12.2"
 reqwest = { version = "0.12.25", features = ["blocking"] }
 seq-macro = "0.3.6"
