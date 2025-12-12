@@ -1,6 +1,4 @@
 use good_lp::*;
-use std::collections::HashSet;
-
 use itertools::*;
 
 type I = u16;
@@ -32,29 +30,18 @@ fn parse_part_1(input: &str) -> Vec<(I, Vec<I>)> {
 }
 
 fn get_min_presses(target: I, buttons: &[I]) -> usize {
-    if target == 0 {
-        return 0;
-    }
-    let mut seen = HashSet::from([0]);
-    let mut curr_nodes = vec![0];
-
-    for presses in 1.. {
-        let mut new_nodes = vec![];
-        for config in curr_nodes {
-            for button in buttons {
-                let resulting_config = config ^ button;
-                if resulting_config == target {
-                    return presses;
-                }
-                if !seen.insert(resulting_config) {
-                    continue;
-                }
-                new_nodes.push(resulting_config);
-            }
-        }
-        curr_nodes = new_nodes;
-    }
-    unreachable!()
+    buttons
+        .iter()
+        .powerset()
+        .filter_map(|comb| {
+            let button_presses = comb.len();
+            comb.into_iter()
+                .fold(0, |acc, b| acc ^ b)
+                .eq(&target)
+                .then_some(button_presses)
+        })
+        .next()
+        .unwrap()
 }
 
 pub fn part_1(input: &str) -> String {
@@ -88,7 +75,7 @@ fn get_min_presses_joltage(target: &[I], buttons: &[Vec<I>]) -> usize {
         .using(microlp)
         .with_all(constraints);
 
-    problem.solve().unwrap().eval(objective) as usize
+    problem.solve().unwrap().eval(objective).round() as usize
 }
 
 fn parse_part_2(input: &str) -> Vec<(Vec<I>, Vec<Vec<I>>)> {
