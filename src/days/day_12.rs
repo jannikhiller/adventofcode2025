@@ -1,9 +1,308 @@
-#[allow(unused_variables)]
+use itertools::*;
+
+const TILE_HEIGHT: usize = 3;
+const TILE_WIDTH: usize = 3;
+const MIN_TILE_SIZE: usize = 6;
+
+type Tile = [u8; TILE_HEIGHT];
+
+#[derive(Clone)]
+struct Grid {
+    rows: usize,
+    cols: usize,
+    _data: Vec<u64>,
+}
+
+fn count_ones<T: num_traits::int::PrimInt>(int_array: &[T]) -> usize {
+    int_array
+        .iter()
+        .map(|row_int| row_int.count_ones())
+        .sum::<u32>() as usize
+}
+
+fn flood_fill(buffer: &mut [u64], mask: &[u64], row: usize, col: usize) {
+    buffer.fill(0);
+
+    buffer[row + 1] = 1u64 << col;
+    let mut changed = true;
+    while changed {
+        changed = false;
+        for (i, mask_row) in mask.iter().enumerate() {
+            let new_row = (buffer[i + 1]
+                | buffer[i]
+                | buffer[i + 2]
+                | (buffer[i + 1] << 1)
+                | (buffer[i + 1] >> 1))
+                & mask_row;
+            if new_row != buffer[i + 1] {
+                buffer[i + 1] = new_row;
+                changed = true;
+            }
+        }
+    }
+}
+
+impl Grid {
+    fn tile_fits(&self, tile: &Tile, (row, col): (usize, usize)) -> bool {
+        izip!(tile, &self._data[row..])
+            .all(|(tile_row, grid_row)| (*tile_row as u64) << col & grid_row == 0)
+    }
+
+    fn xor_tile(&mut self, tile: &Tile, (row, col): (usize, usize)) {
+        for (tile_row, grid_row) in izip!(tile, &mut self._data[row..]) {
+            *grid_row ^= (*tile_row as u64) << col
+        }
+    }
+
+    #[allow(dead_code)]
+    fn print(&self) {
+        for row_int in &self._data {
+            for col in 0..self.cols {
+                if row_int & (1 << col) != 0 {
+                    print!("#");
+                } else {
+                    print!(".");
+                }
+            }
+            println!();
+        }
+    }
+
+    fn compute_available_cells(&self) -> usize {
+        let mut available_cells = 0;
+        let mut mask = Vec::with_capacity(self.rows);
+        for row_int in &self._data {
+            mask.push(!row_int & ((1 << self.cols) - 1))
+        }
+        let mut flood_fill_buffer = vec![0; self.rows + 2];
+
+        for (row, col) in iproduct!(0..self.rows, 0..self.cols) {
+            if mask[row] & (1 << col) == 0 {
+                continue;
+            }
+            flood_fill(&mut flood_fill_buffer, &mask, row, col);
+            let region_size = count_ones(&flood_fill_buffer);
+            if region_size >= MIN_TILE_SIZE {
+                available_cells += region_size
+            }
+            for (i, region_row) in flood_fill_buffer[1..flood_fill_buffer.len() - 1]
+                .iter()
+                .enumerate()
+            {
+                mask[i] &= !region_row;
+            }
+        }
+        available_cells
+    }
+}
+
+fn backtrack(
+    tiles: &[[Tile; 4]],
+    grid: &mut Grid,
+    tile_counts: &mut [usize],
+    (row, col): (usize, usize),
+) -> bool {
+    if tile_counts.iter().all(|&tc| tc == 0) {
+        return true;
+    }
+    if row > grid.rows - TILE_HEIGHT {
+        return false;
+    }
+
+    let required_cells = izip!(tiles, tile_counts.iter())
+        .map(|(t, tc)| count_ones(&t[0]) * *tc)
+        .sum::<usize>();
+
+    if grid.compute_available_cells() < required_cells {
+        return false;
+    }
+    if col > grid.cols - TILE_WIDTH {
+        return backtrack(tiles, grid, tile_counts, (row + 1, 0));
+    }
+
+    for (i, tile) in tiles.iter().enumerate() {
+        if tile_counts[i] == 0 {
+            continue;
+        }
+        tile_counts[i] -= 1;
+        for rotation in tile {
+            if !grid.tile_fits(rotation, (row, col)) {
+                continue;
+            }
+            grid.xor_tile(rotation, (row, col));
+            if backtrack(tiles, grid, tile_counts, (row, col)) {
+                return true;
+            }
+            grid.xor_tile(rotation, (row, col));
+        }
+        tile_counts[i] += 1;
+    }
+    backtrack(tiles, grid, tile_counts, (row, col + 1))
+}
+
+#[allow(clippy::needless_range_loop)]
+fn rotate_tile(tile: &Tile) -> Tile {
+    const { assert!(TILE_HEIGHT == 3 && TILE_WIDTH == 3) }
+    let mut new_tile = [0; TILE_HEIGHT];
+    for row in 0..TILE_HEIGHT {
+        for col in 0..TILE_WIDTH {
+            if tile[row] & (1 << col) != 0 {
+                new_tile[col] |= 1 << (2 - row)
+            }
+        }
+    }
+    new_tile
+}
+
+#[allow(dead_code)]
+fn print_tile(tile: &Tile) {
+    for row_int in tile {
+        for col in 0..TILE_WIDTH {
+            if row_int & (1 << col) != 0 {
+                print!("#");
+            } else {
+                print!(".");
+            }
+        }
+        println!();
+    }
+}
+
+fn parse_tile(tile_str: &str) -> [Tile; 4] {
+    let mut tile = [0; TILE_HEIGHT];
+
+    for (row, row_str) in tile_str.lines().skip(1).enumerate() {
+        for (col, c) in row_str.chars().enumerate() {
+            if c == '#' {
+                tile[row] |= 1 << col;
+            }
+        }
+    }
+
+    repeat_n((), 4)
+        .map(|_| {
+            tile = rotate_tile(&tile);
+            tile
+        })
+        .collect_array()
+        .unwrap()
+}
+
+type Problem = (Grid, Vec<usize>);
+fn parse_input(input: &str) -> (Vec<[Tile; 4]>, Vec<Problem>) {
+    let groups: Vec<_> = input.split("\n\n").collect();
+
+    let tiles = groups[..groups.len() - 1]
+        .iter()
+        .copied()
+        .map(parse_tile)
+        .collect();
+
+    let problems = groups
+        .last()
+        .unwrap()
+        .lines()
+        .map(|s| {
+            let mut it = s.split_whitespace();
+            let dimension_str = it.next().unwrap();
+            let (rows, cols) = dimension_str
+                .trim_end_matches(":")
+                .split("x")
+                .map(|n| n.parse().unwrap())
+                .collect_tuple()
+                .unwrap();
+            let tile_counts = it.map(|n| n.parse().unwrap()).collect();
+            (
+                Grid {
+                    rows,
+                    cols,
+                    _data: vec![0; rows],
+                },
+                tile_counts,
+            )
+        })
+        .collect();
+
+    (tiles, problems)
+}
+
 pub fn part_1(input: &str) -> String {
+    let (tiles, mut problems) = parse_input(input);
+
+    problems
+        .iter_mut()
+        .filter_map(|(grid, tile_counts)| {
+            backtrack(&tiles, grid, tile_counts, (0, 0)).then_some(())
+        })
+        .count()
+        .to_string()
+}
+
+pub fn part_2(_input: &str) -> String {
     String::new()
 }
 
-#[allow(unused_variables)]
-pub fn part_2(input: &str) -> String {
-    String::new()
+// generated by ai
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Replicating your helper for easy grid creation
+    fn create_grid(rows: usize, cols: usize, pattern: &[&str]) -> Grid {
+        let mut data = Vec::with_capacity(rows);
+        for r in 0..rows {
+            let mut row_int = 0u64;
+            if r < pattern.len() {
+                for (c, char) in pattern[r].chars().enumerate() {
+                    if char == '#' {
+                        row_int |= 1 << c;
+                    }
+                }
+            }
+            data.push(row_int);
+        }
+        Grid {
+            rows,
+            cols,
+            _data: data,
+        }
+    }
+
+    #[test]
+    fn test_small_regions_are_ignored() {
+        let grid = create_grid(3, 3, &["...", "..#", "###"]);
+        assert_eq!(grid.compute_available_cells(), 0);
+    }
+
+    #[test]
+    fn test_exact_min_size_region() {
+        let grid = create_grid(3, 3, &["...", "...", "###"]);
+        assert_eq!(grid.compute_available_cells(), 6);
+    }
+
+    #[test]
+    fn test_mixed_regions() {
+        let grid = create_grid(4, 6, &["######", "..#...", "..#...", "######"]);
+
+        assert_eq!(grid.compute_available_cells(), 6);
+    }
+
+    #[test]
+    fn test_large_snake_connectivity() {
+        let grid = create_grid(2, 5, &[".....", "....."]);
+        assert_eq!(grid.compute_available_cells(), 10);
+    }
+
+    #[test]
+    fn test_two_valid_regions() {
+        let grid = create_grid(3, 7, &[".......", "#######", "......#"]);
+
+        assert_eq!(grid.compute_available_cells(), 13);
+    }
+
+    #[test]
+    fn test_almost_valid_regions() {
+        let grid = create_grid(3, 5, &[".....", "#####", "....."]);
+        assert_eq!(grid.compute_available_cells(), 0);
+    }
 }

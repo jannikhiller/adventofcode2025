@@ -70,6 +70,7 @@ dependencies = [
  "dotenv",
  "good_lp",
  "itertools",
+ "num-traits",
  "reqwest",
  "seq-macro",
 ]
