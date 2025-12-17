@@ -52,6 +52,27 @@ impl Grid {
     }
 }
 
+fn backtrack_init(tiles: &[[Tile; 4]], grid: &mut Grid, tile_counts: &mut [usize]) -> bool {
+    let tile_sizes: Vec<usize> = tiles.iter().map(|t| count_ones(&t[0])).collect();
+
+    for (i, tile) in tiles.iter().enumerate() {
+        if tile_counts[i] == 0 {
+            continue;
+        }
+        tile_counts[i] -= 1;
+        // only consider one 90° rotation as the square grid has a 180° symmetry
+        for rotation in &tile[..2] {
+            grid.xor_tile(rotation, (0, 0));
+            if backtrack(tiles, &tile_sizes, grid, tile_counts, (0, 1)) {
+                return true;
+            }
+            grid.xor_tile(rotation, (0, 0));
+        }
+        tile_counts[i] += 1;
+    }
+    backtrack(tiles, &tile_sizes, grid, tile_counts, (0, 1))
+}
+
 fn backtrack(
     tiles: &[[Tile; 4]],
     tile_sizes: &[usize],
@@ -185,13 +206,10 @@ fn parse_input(input: &str) -> (Vec<[Tile; 4]>, Vec<Problem>) {
 
 pub fn part_1(input: &str) -> String {
     let (tiles, mut problems) = parse_input(input);
-    let tile_sizes: Vec<usize> = tiles.iter().map(|t| count_ones(&t[0])).collect();
 
     problems
         .iter_mut()
-        .filter_map(|(grid, tile_counts)| {
-            backtrack(&tiles, &tile_sizes, grid, tile_counts, (0, 0)).then_some(())
-        })
+        .filter_map(|(grid, tile_counts)| backtrack_init(&tiles, grid, tile_counts).then_some(()))
         .count()
         .to_string()
 }
