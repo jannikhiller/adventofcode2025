@@ -10,5 +10,6 @@ dotenv = "0.15.0"
 good_lp = { version = "1.14.2", features = ["microlp"], default-features = false }
 itertools = "0.14.0"
 num-traits = "0.2.19"
+rayon = "1.11.0"
 reqwest = { version = "0.12.25", features = ["blocking"] }
 seq-macro = "0.3.6"

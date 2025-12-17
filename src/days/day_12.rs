@@ -5,7 +5,6 @@ const TILE_WIDTH: usize = 3;
 
 type Tile = [u8; TILE_HEIGHT];
 
-#[derive(Clone)]
 struct Grid {
     rows: usize,
     cols: usize,
