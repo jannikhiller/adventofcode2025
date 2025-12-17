@@ -46,6 +46,7 @@ impl Grid {
     }
 
     fn compute_available_cells(&self, row: usize) -> usize {
+        assert!(row <= self.rows - 3);
         // compute number of empty cells starting in row
         (self.rows - row) * self.cols - count_ones(&self._data[row..row + 3])
     }
@@ -53,6 +54,7 @@ impl Grid {
 
 fn backtrack(
     tiles: &[[Tile; 4]],
+    tile_sizes: &[usize],
     grid: &mut Grid,
     tile_counts: &mut [usize],
     (row, col): (usize, usize),
@@ -64,15 +66,15 @@ fn backtrack(
         return false;
     }
 
-    let required_cells = izip!(tiles, tile_counts.iter())
-        .map(|(t, tc)| count_ones(&t[0]) * *tc)
+    let required_cells = izip!(tile_sizes, tile_counts.iter())
+        .map(|(ts, tc)| *ts * *tc)
         .sum::<usize>();
 
     if grid.compute_available_cells(row) < required_cells {
         return false;
     }
     if col > grid.cols - TILE_WIDTH {
-        return backtrack(tiles, grid, tile_counts, (row + 1, 0));
+        return backtrack(tiles, tile_sizes, grid, tile_counts, (row + 1, 0));
     }
 
     for (i, tile) in tiles.iter().enumerate() {
@@ -85,14 +87,14 @@ fn backtrack(
                 continue;
             }
             grid.xor_tile(rotation, (row, col));
-            if backtrack(tiles, grid, tile_counts, (row, col)) {
+            if backtrack(tiles, tile_sizes, grid, tile_counts, (row, col)) {
                 return true;
             }
             grid.xor_tile(rotation, (row, col));
         }
         tile_counts[i] += 1;
     }
-    backtrack(tiles, grid, tile_counts, (row, col + 1))
+    backtrack(tiles, tile_sizes, grid, tile_counts, (row, col + 1))
 }
 
 #[allow(clippy::needless_range_loop)]
@@ -183,11 +185,12 @@ fn parse_input(input: &str) -> (Vec<[Tile; 4]>, Vec<Problem>) {
 
 pub fn part_1(input: &str) -> String {
     let (tiles, mut problems) = parse_input(input);
+    let tile_sizes: Vec<usize> = tiles.iter().map(|t| count_ones(&t[0])).collect();
 
     problems
         .iter_mut()
         .filter_map(|(grid, tile_counts)| {
-            backtrack(&tiles, grid, tile_counts, (0, 0)).then_some(())
+            backtrack(&tiles, &tile_sizes, grid, tile_counts, (0, 0)).then_some(())
         })
         .count()
         .to_string()
